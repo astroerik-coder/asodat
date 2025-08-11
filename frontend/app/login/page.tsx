@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, LogIn } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
 
 // Validación de cédula ecuatoriana
 const validarCedulaEcuatoriana = (cedula: string): boolean => {
@@ -41,7 +42,7 @@ const loginSchema = yup.object({
     .required("La cédula es obligatoria")
     .matches(/^\d{10}$/, "La cédula debe tener 10 dígitos")
     .test("cedula-valida", "Cédula inválida", validarCedulaEcuatoriana),
-  contrasena: yup
+  password: yup
     .string()
     .required("La contraseña es obligatoria")
     .min(4, "La contraseña debe tener al menos 4 caracteres"),
@@ -54,6 +55,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
+  const { login } = useAuth()
 
   const {
     register,
@@ -68,30 +70,24 @@ export default function LoginPage() {
     setError("")
 
     try {
-      // Simular autenticación - aquí conectarías con tu backend
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const result = await login(data.cedula, data.password)
 
-      // Simular diferentes tipos de usuario
-      const userType = data.cedula === "1234567890" ? "admin" : "socio"
-
-      // Guardar en localStorage (en producción usar cookies seguras)
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          cedula: data.cedula,
-          tipo: userType,
-          authenticated: true,
-        }),
-      )
-
-      // Redirigir según el tipo de usuario
-      if (userType === "admin") {
-        router.push("/admin/dashboard")
+      if (result.success) {
+        // Obtener el rol del usuario del localStorage
+        const userRol = localStorage.getItem('user_rol')
+        
+        // Redirigir según el rol del usuario
+        if (['admin', 'tesorero', 'secretaria', 'presidente'].includes(userRol || '')) {
+          router.push("/admin/dashboard")
+        } else {
+          router.push("/socio/dashboard")
+        }
       } else {
-        router.push("/socio/dashboard")
+        setError(result.error || "Credenciales inválidas")
       }
     } catch (err) {
-      setError("Credenciales inválidas. Verifique su cédula y contraseña.")
+      console.error('Login error:', err)
+      setError("Error de conexión. Verifique su conexión a internet.")
     } finally {
       setIsLoading(false)
     }
@@ -123,14 +119,14 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="contrasena">Contraseña</Label>
+              <Label htmlFor="password">Contraseña</Label>
               <div className="relative">
                 <Input
-                  id="contrasena"
+                  id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Ingrese su contraseña"
-                  {...register("contrasena")}
-                  className={errors.contrasena ? "border-red-500 pr-10" : "pr-10"}
+                  {...register("password")}
+                  className={errors.password ? "border-red-500 pr-10" : "pr-10"}
                 />
                 <button
                   type="button"
@@ -144,7 +140,7 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
-              {errors.contrasena && <p className="text-sm text-red-500">{errors.contrasena.message}</p>}
+              {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
             </div>
 
             {error && (
@@ -169,12 +165,6 @@ export default function LoginPage() {
               </div>
             </div>
           </form>
-
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-2">Credenciales de prueba:</p>
-            <p className="text-xs text-gray-500">Admin: 1234567890 / admin123</p>
-            <p className="text-xs text-gray-500">Socio: 0987654321 / socio123</p>
-          </div>
         </CardContent>
       </Card>
     </div>

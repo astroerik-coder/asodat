@@ -23,8 +23,7 @@ CREATE TABLE `aportes` (
   `noviembre` decimal(10,2) DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-
--
+--
 -- Table structure for table `aportes_socios`
 --
 
@@ -47,8 +46,6 @@ CREATE TABLE `aportes_socios` (
   `dic_25` decimal(10,2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-
-
 --
 -- Table structure for table `comprobantes_pago`
 --
@@ -66,8 +63,6 @@ CREATE TABLE `comprobantes_pago` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-
-
 --
 -- Table structure for table `cupossocios`
 --
@@ -77,7 +72,6 @@ CREATE TABLE `cupossocios` (
   `nombrecompleto` varchar(100) NOT NULL,
   `cupo` decimal(10,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 
 --
 -- Table structure for table `historial_aportes`
@@ -103,8 +97,6 @@ CREATE TABLE `historial_aportes` (
   `anio_respaldo` int(11) DEFAULT NULL,
   `fecha_respaldo` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `historial_carga_aportes`
@@ -175,7 +167,6 @@ CREATE TABLE `socios` (
   `correo` varchar(30) DEFAULT NULL,
   `tipo_usuario` enum('nuevo','adherente','fundador') DEFAULT 'nuevo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 
 --
 -- Indexes for table `aportes`

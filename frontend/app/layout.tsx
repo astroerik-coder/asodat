@@ -2,10 +2,11 @@ import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
+import { AuthProvider } from '@/hooks/use-auth'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'ASODAT - Sistema de Gestión',
+  description: 'Sistema de gestión para la Asociación de Datos',
   generator: 'v0.dev',
 }
 
@@ -15,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <head>
         <style>{`
 html {
@@ -25,7 +26,11 @@ html {
 }
         `}</style>
       </head>
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   )
 }

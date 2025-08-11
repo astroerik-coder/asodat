@@ -27,52 +27,67 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import {
-  DollarSign,
+  Users,
   Plus,
   Search,
+  Trash2,
   Calendar,
-  TrendingUp,
+  UserX,
   LogOut,
   Bell,
-  Eye,
-  Edit,
 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { useAuth } from "@/hooks/use-auth";
-import { ApiClient, Aporte } from "@/lib/api";
+import { ApiClient, Eliminacion } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
-export default function AportesPage() {
+export default function EliminacionesPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [aportes, setAportes] = useState<Aporte[]>([]);
+  const [eliminaciones, setEliminaciones] = useState<Eliminacion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
-  const [totalAportes, setTotalAportes] = useState(0);
+  const [totalEliminaciones, setTotalEliminaciones] = useState(0);
   const [limitePorPagina] = useState(10);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [nuevaEliminacion, setNuevaEliminacion] = useState({
+    cedula: "",
+    motivo: "",
+  });
   const { user, logout } = useAuth();
 
   useEffect(() => {
-    cargarAportes();
+    cargarEliminaciones();
   }, [paginaActual, searchTerm]);
 
-  const cargarAportes = async () => {
+  const cargarEliminaciones = async () => {
     try {
       setIsLoading(true);
       setError("");
 
-      const response = await ApiClient.getAportes({
+      const response = await ApiClient.getEliminaciones({
         buscar: searchTerm || undefined,
         pagina: paginaActual,
         limite: limitePorPagina,
       });
 
       if (response.status === "success" && response.data) {
-        setAportes(response.data.aportes || []);
+        setEliminaciones(response.data.eliminaciones || []);
         setTotalPaginas(response.data.paginacion?.total_paginas || 1);
-        setTotalAportes(response.data.paginacion?.total_aportes || 0);
+        setTotalEliminaciones(response.data.paginacion?.total_eliminaciones || 0);
       } else {
-        setError(response.error || "Error al cargar aportes");
+        setError(response.error || "Error al cargar eliminaciones");
       }
     } catch (err) {
       setError("Error de conexión");
@@ -94,48 +109,43 @@ export default function AportesPage() {
     setPaginaActual(1);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("es-EC", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
+  const handleCrearEliminacion = async () => {
+    try {
+      if (!nuevaEliminacion.cedula || !nuevaEliminacion.motivo) {
+        setError("Todos los campos son obligatorios");
+        return;
+      }
+
+      const response = await ApiClient.crearEliminacion(nuevaEliminacion);
+      
+      if (response.status === "success") {
+        setIsDialogOpen(false);
+        setNuevaEliminacion({ cedula: "", motivo: "" });
+        cargarEliminaciones();
+      } else {
+        setError(response.error || "Error al crear eliminación");
+      }
+    } catch (err) {
+      setError("Error de conexión");
+    }
   };
 
-  const getTotalAporte = (aporte: Aporte) => {
-    return (
-      aporte.nuevos_ingresos +
-      aporte.dic_24 +
-      aporte.ene_25 +
-      aporte.feb_25 +
-      aporte.mar_25 +
-      aporte.abr_25 +
-      aporte.may_25 +
-      aporte.jun_25 +
-      aporte.jul_25 +
-      aporte.ago_25 +
-      aporte.sept_25 +
-      aporte.oct_25 +
-      aporte.nov_25 +
-      aporte.dic_25
-    );
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("es-EC", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
-  const getMesesPagados = (aporte: Aporte) => {
-    const meses = [];
-    if (aporte.dic_24 > 0) meses.push("Dic 24");
-    if (aporte.ene_25 > 0) meses.push("Ene 25");
-    if (aporte.feb_25 > 0) meses.push("Feb 25");
-    if (aporte.mar_25 > 0) meses.push("Mar 25");
-    if (aporte.abr_25 > 0) meses.push("Abr 25");
-    if (aporte.may_25 > 0) meses.push("May 25");
-    if (aporte.jun_25 > 0) meses.push("Jun 25");
-    if (aporte.jul_25 > 0) meses.push("Jul 25");
-    if (aporte.ago_25 > 0) meses.push("Ago 25");
-    if (aporte.sept_25 > 0) meses.push("Sep 25");
-    if (aporte.oct_25 > 0) meses.push("Oct 25");
-    if (aporte.nov_25 > 0) meses.push("Nov 25");
-    if (aporte.dic_25 > 0) meses.push("Dic 25");
-    return meses;
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString("es-EC", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -149,11 +159,13 @@ export default function AportesPage() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin">Administración</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin">
+                    Administración
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Control de Aportes</BreadcrumbPage>
+                  <BreadcrumbPage>Eliminaciones</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -175,124 +187,106 @@ export default function AportesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-3xl font-bold tracking-tight">
-                    Control de Aportes
+                    Gestión de Eliminaciones
                   </h1>
                   <p className="text-muted-foreground">
-                    Gestione los aportes mensuales de los socios
+                    Administre el historial de socios eliminados del sistema
                   </p>
                 </div>
-                {/* <div className="flex space-x-2">
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Registrar Pago
-                  </Button>
-                  <Button variant="outline">
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Reportes
-                  </Button>
-                </div> */}
+               {/*  <Dialog>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nueva Eliminación
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Registrar Eliminación de Socio</DialogTitle>
+                      <DialogDescription>
+                        Ingrese los datos del socio a eliminar del sistema
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="cedula">Cédula del Socio</Label>
+                        <Input
+                          id="cedula"
+                          placeholder="Ej: 0502399397"
+                          value={nuevaEliminacion.cedula}
+                          onChange={(e) =>
+                            setNuevaEliminacion({
+                              ...nuevaEliminacion,
+                              cedula: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="motivo">Motivo de Eliminación</Label>
+                        <Textarea
+                          id="motivo"
+                          placeholder="Describa el motivo de la eliminación..."
+                          value={nuevaEliminacion.motivo}
+                          onChange={(e) =>
+                            setNuevaEliminacion({
+                              ...nuevaEliminacion,
+                              motivo: e.target.value,
+                            })
+                          }
+                          rows={4}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsDialogOpen(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleCrearEliminacion}>
+                        Registrar Eliminación
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog> */}
               </div>
 
               {/* Estadísticas */}
-              <div className="grid gap-4 md:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
-                      Total Aportes
+                      Total Eliminaciones
                     </CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <UserX className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{totalAportes}</div>
+                    <div className="text-2xl font-bold">{totalEliminaciones}</div>
                     <p className="text-xs text-muted-foreground">
                       {isLoading
                         ? "Cargando..."
-                        : `${aportes.length} mostrados de ${totalAportes}`}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Recaudado
-                    </CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {formatCurrency(
-                        aportes.reduce(
-                          (total, aporte) => total + getTotalAporte(aporte),
-                          0
-                        )
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Monto total de aportes
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Promedio Mensual
-                    </CardTitle>
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {aportes.length > 0
-                        ? formatCurrency(
-                            aportes.reduce(
-                              (total, aporte) => total + getTotalAporte(aporte),
-                              0
-                            ) / aportes.length
-                          )
-                        : "$0.00"}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Por socio registrado
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Socios Activos
-                    </CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {
-                        aportes.filter((aporte) => getTotalAporte(aporte) > 0)
-                          .length
-                      }
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Con aportes registrados
+                        : `${eliminaciones.length} mostradas de ${totalEliminaciones}`}
                     </p>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Lista de Aportes */}
+              {/* Lista de Eliminaciones */}
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Registro de Aportes</CardTitle>
+                      <CardTitle>Historial de Eliminaciones</CardTitle>
                       <CardDescription>
-                        Control de aportes mensuales por socio
+                        Registro de todos los socios eliminados del sistema
                       </CardDescription>
                     </div>
                     <div className="flex space-x-2">
                       <Button
                         variant="outline"
-                        onClick={cargarAportes}
+                        onClick={cargarEliminaciones}
                         disabled={isLoading}
                       >
                         {isLoading ? "Cargando..." : "Recargar"}
@@ -319,119 +313,76 @@ export default function AportesPage() {
                     {isLoading ? (
                       <div className="text-center py-8">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                        <p className="text-gray-600">Cargando aportes...</p>
+                        <p className="text-gray-600">Cargando eliminaciones...</p>
                       </div>
                     ) : error ? (
                       <div className="text-center py-8">
                         <div className="text-red-500 mb-4">
                           <p className="font-semibold">
-                            Error al cargar aportes
+                            Error al cargar eliminaciones
                           </p>
                           <p className="text-sm">{error}</p>
                         </div>
-                        <Button variant="outline" onClick={cargarAportes}>
+                        <Button variant="outline" onClick={cargarEliminaciones}>
                           Reintentar
                         </Button>
                       </div>
-                    ) : aportes.length > 0 ? (
+                    ) : eliminaciones.length > 0 ? (
                       <>
-                        {aportes.map((aporte) => (
+                        {eliminaciones.map((eliminacion) => (
                           <div
-                            key={aporte.cedula}
+                            key={eliminacion.id}
                             className="border rounded-lg p-4 hover:bg-gray-50"
                           >
                             <div className="flex justify-between items-start">
-                              <div className="space-y-2 flex-1">
+                              <div className="space-y-2">
                                 <div className="flex items-center space-x-2">
                                   <h3 className="font-semibold">
-                                    {aporte.apellidos_y_nombres || "Sin nombre"}
+                                    {eliminacion.nombre_completo}
                                   </h3>
-                                  <Badge variant="secondary">
-                                    {aporte.cedula}
-                                  </Badge>
-                                  <Badge variant="outline">
-                                    Total:{" "}
-                                    {formatCurrency(getTotalAporte(aporte))}
+                                  <Badge variant="destructive">
+                                    Eliminado
                                   </Badge>
                                 </div>
-
-                                {/* Resumen de meses */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
+                                  <div>Cédula: {eliminacion.cedula}</div>
                                   <div>
-                                    <strong>Nuevos Ingresos:</strong>{" "}
-                                    {formatCurrency(aporte.nuevos_ingresos)}
+                                    Fecha Afiliación:{" "}
+                                    {eliminacion.fecha_afiliacion
+                                      ? formatDate(eliminacion.fecha_afiliacion)
+                                      : "No especificada"}
                                   </div>
                                   <div>
-                                    <strong>Dic 24:</strong>{" "}
-                                    {formatCurrency(aporte.dic_24)}
+                                    Fecha Eliminación:{" "}
+                                    {formatDateTime(eliminacion.fecha_eliminacion)}
                                   </div>
-                                  <div>
-                                    <strong>Ene 25:</strong>{" "}
-                                    {formatCurrency(aporte.ene_25)}
+                                  <div className="md:col-span-3">
+                                    <strong>Motivo:</strong> {eliminacion.motivo}
                                   </div>
-                                  <div>
-                                    <strong>Feb 25:</strong>{" "}
-                                    {formatCurrency(aporte.feb_25)}
-                                  </div>
-                                  <div>
-                                    <strong>Mar 25:</strong>{" "}
-                                    {formatCurrency(aporte.mar_25)}
-                                  </div>
-                                  <div>
-                                    <strong>Abr 25:</strong>{" "}
-                                    {formatCurrency(aporte.abr_25)}
-                                  </div>
-                                  <div>
-                                    <strong>May 25:</strong>{" "}
-                                    {formatCurrency(aporte.may_25)}
-                                  </div>
-                                  <div>
-                                    <strong>Jun 25:</strong>{" "}
-                                    {formatCurrency(aporte.jun_25)}
-                                  </div>
-                                </div>
-
-                                {/* Meses pagados */}
-                                <div className="text-sm">
-                                  <strong>Meses Pagados:</strong>{" "}
-                                  {getMesesPagados(aporte).length > 0 ? (
-                                    <span className="text-green-600">
-                                      {getMesesPagados(aporte).join(", ")}
-                                    </span>
-                                  ) : (
-                                    <span className="text-red-600">
-                                      Ninguno
-                                    </span>
-                                  )}
                                 </div>
                               </div>
-
-                              {/* <div className="flex space-x-2 ml-4">
+                              <div className="flex space-x-2">
                                 <Button variant="outline" size="sm">
-                                  <Eye className="h-4 w-4 mr-2" />
+                                  <Calendar className="h-4 w-4 mr-2" />
                                   Ver Detalles
                                 </Button>
-                                <Button variant="outline" size="sm">
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Editar
-                                </Button>
-                              </div> */}
+                              </div>
                             </div>
                           </div>
                         ))}
                       </>
                     ) : (
                       <div className="text-center py-8">
-                        <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <Trash2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">
                           {searchTerm
-                            ? "No se encontraron aportes"
-                            : "No hay aportes registrados"}
+                            ? "No se encontraron eliminaciones"
+                            : "No hay eliminaciones registradas"}
                         </h3>
                         <p className="text-gray-600">
                           {searchTerm
                             ? "Intente ajustar los términos de búsqueda"
-                            : "Los aportes de los socios aparecerán aquí"}
+                            : "Los registros de eliminación aparecerán aquí"}
                         </p>
                       </div>
                     )}
@@ -441,15 +392,21 @@ export default function AportesPage() {
                   {!isLoading && !error && totalPaginas > 1 && (
                     <div className="flex items-center justify-between mt-6">
                       <div className="text-sm text-gray-600">
-                        Mostrando {(paginaActual - 1) * limitePorPagina + 1} a{" "}
-                        {Math.min(paginaActual * limitePorPagina, totalAportes)}{" "}
-                        de {totalAportes} aportes
+                        Mostrando {(paginaActual - 1) * limitePorPagina + 1}{" "}
+                        a{" "}
+                        {Math.min(
+                          paginaActual * limitePorPagina,
+                          totalEliminaciones
+                        )}{" "}
+                        de {totalEliminaciones} eliminaciones
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handlePaginaChange(paginaActual - 1)}
+                          onClick={() =>
+                            handlePaginaChange(paginaActual - 1)
+                          }
                           disabled={paginaActual === 1}
                         >
                           Anterior
@@ -463,7 +420,9 @@ export default function AportesPage() {
                               if (totalPaginas > 5) {
                                 if (paginaActual <= 3) {
                                   pagina = i + 1;
-                                } else if (paginaActual >= totalPaginas - 2) {
+                                } else if (
+                                  paginaActual >= totalPaginas - 2
+                                ) {
                                   pagina = totalPaginas - 4 + i;
                                 } else {
                                   pagina = paginaActual - 2 + i;
@@ -492,7 +451,9 @@ export default function AportesPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handlePaginaChange(paginaActual + 1)}
+                          onClick={() =>
+                            handlePaginaChange(paginaActual + 1)
+                          }
                           disabled={paginaActual === totalPaginas}
                         >
                           Siguiente
